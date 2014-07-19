@@ -1,0 +1,192 @@
+# Name: Aaron Colin Foote
+# Date: 13th April 2013
+# User: acf502, 4258770
+# File Description: pos.sh for Assignment 2 of CSCI212
+
+#!/usr/bin/bash
+
+ITEM=""
+PRICE=""
+QUANTITY=""
+DATE=""
+COUNT=0
+
+menu(){
+	echo "1) Add new sales transaction 4) Inquire sales transaction"
+	echo "2) Removes sales transaction 5) Sales summary report"
+	echo "3) Edit sales entries 6) Quit"
+	printf "Please choose one: " 
+}
+
+# 1) Add new sales transaction
+
+one(){
+	printf "Item Description: "	# Read user input into each field
+	read tmpdesc
+	ITEM[COUNT]="$tmpdesc"
+	printf "Price: "
+	read tmpprice
+	PRICE[COUNT]="$tmpprice"
+	printf "Quantity Purchased: "
+	read tmpquant
+	QUANTITY[COUNT]="$tmpquant"
+	printf "Date Purchased (DDMMMYY): "
+	read tmpdate
+	DATE[COUNT]="$tmpdate"
+	let COUNT=COUNT+1	# Increase count of all records
+}
+
+# 2) Remove sales transaction
+
+two(){
+	COUNTONE=0
+	let COUNTONE=($COUNT+1)			# Number to hold value of each index + 1 for output to screen (i.e: change 0 to 1, 1 to 2 etc)
+	for (( i=0; i<$COUNT; i++ )); do
+		let j=($i+1)
+		echo "$j) ${ITEM[i]}:${PRICE[i]}:${QUANTITY[i]}:${DATE[i]}"
+	done
+	echo "$COUNTONE) Quit"
+	printf "Choosing a record will remove it from the data file:"
+	read TWOCHOICE
+	if [ $TWOCHOICE -ne $COUNTONE ]; then	# if number other than quit option
+		if [ $COUNT -gt '1' ]; then	# and if record count greater than 1
+		for (( k=$TWOCHOICE; k<$COUNT; k++ )); do
+			let l=($k-1)
+			ITEM[l]=${ITEM[k]}	# shuffle down all fields from deleted entry upwards
+			PRICE[l]=${PRICE[k]}
+			QUANTITY[l]=${QUANTITY[k]}
+			DATE[l]=${DATE[k]}
+		done
+		else				# if only 1 record, unset all values
+			unset ITEM[0]
+			unset PRICE[0]
+			unset QUANTITY[0]
+			unset DATE[0]
+		fi
+		let COUNT=($COUNT-1)
+	fi
+}
+
+# 3) Edit sales entries
+
+three(){
+	COUNTONE=0
+	let COUNTONE=($COUNT+1)		# Number to hold value of each index + 1 for output to screen (i.e: change 0 to 1, 1 to 2 etc)
+	for (( i=0; i<$COUNT; i++ )); do
+		let j=($i+1)
+		echo "$j) ${ITEM[i]}:${PRICE[i]}:${QUANTITY[i]}:${DATE[i]}"
+	done
+	echo "$COUNTONE) Quit"
+	printf "Choosing a record to edit:"
+	read THREECHOICE
+	let CHOICE=($THREECHOICE-1)	# Now revert choice to actual index of records
+	if [ $THREECHOICE -ne $COUNTONE ]; then
+		echo "Edit record: ${ITEM[CHOICE]}:${PRICE[CHOICE]}:${QUANTITY[CHOICE]}:${DATE[CHOICE]}"
+		echo "Note that pressing Enter will keep the existing value"
+		printf "Item description [${ITEM[CHOICE]}]:"
+		read newitem
+		if [[ -n $newitem ]]; then	# user input. change value if value entered, otherwise no change
+		ITEM[CHOICE]=$newitem
+		fi	
+		printf "Price [${PRICE[CHOICE]}]:"
+		read newprice
+		if [[ -n $newprice ]]; then	# user input. change value if value entered, otherwise no change
+		PRICE[CHOICE]=$newprice
+		fi
+		printf "Quantity Purchased [${QUANTITY[CHOICE]}]:"
+		read newquantity
+		if [[ -n $newquantity ]]; then	# user input. change value if value entered, otherwise no change
+		QUANTITY[CHOICE]=$newquantity
+		fi
+		printf "Date Purchased (DDMMMYY) [${DATE[CHOICE]}]:"
+		read newdate
+		if [[ -n $newdate ]]; then	# user input. change value if value entered, otherwise no change
+		DATE[CHOICE]=$newdate
+		fi
+	fi
+}
+
+# 4) Inquire sales transaction
+
+four(){
+	j=0
+	transcount=0
+	echo "Inquire Sales Transaction (by Date DDMMMYY):"	# user inputs date
+	read inquiry
+	DATES=`for a in "${DATE[@]}"; do echo "$a"; done | sort`	# load all dates, sorted, into DATES
+	UNIQUEDATES=($(echo "$DATES" | sed 's/ / /g'))		# split DATES into array by space delimiter
+	DATECOUNT=${#UNIQUEDATES[@]}				# counter of all unique dates
+	for (( i=0; i<$DATECOUNT; i++ )); do
+	if [ ${UNIQUEDATES[i]} = $inquiry ]; then	# count data with matches to inquiry input
+		let transcount=transcount+1
+	fi
+	done
+	for (( i=0; i<$COUNT; i++ )); do	# for all records stored
+		let j=($i+1)			# index counter, increased by 1 for user viewing
+		if [ ${DATE[i]} = "$inquiry" ]; then	# if date matches inquiry, output data
+			echo "Record No.: $j"
+			echo "Item:  ${ITEM[i]}"
+			echo "Price: ${PRICE[i]}.00"
+			echo "Quantity: ${QUANTITY[i]}"
+			echo "Date Purchased: ${DATE[i]}"
+		fi
+	done
+	echo "There are $transcount transactions on $inquiry"
+}
+
+# 5) Sales summary report
+
+five(){
+	echo "  Date	        Total Sales"
+	PRICECOUNT=""
+	DATES=`for a in "${DATE[@]}"; do echo "$a"; done | sort | uniq`	# load all dates
+	UNIQUEDATES=($(echo "$DATES" | sed 's/ / /g'))			# split unique dates into array
+	DATECOUNT=${#UNIQUEDATES[@]}					# total amount of unique dates
+	if [ $COUNT -gt '0' ]; then					# if at least one record exists...
+	for (( i=0; i<$DATECOUNT; i++ )); do				# for each unique date
+		printf "  ${UNIQUEDATES[i]}         $"			# output date
+		for (( j=0; j<$COUNT; j++ )); do			# look through all records
+			if [ ${DATE[j]} = ${UNIQUEDATES[i]} ]; then	# if a record matches the unique date
+				PRICECOUNT[i]=$(( ${PRICECOUNT[i]} + ${PRICE[j]} * ${QUANTITY[j]} ))	# increase the profit of unique date
+			fi
+		done
+		printf "${PRICECOUNT[i]}\n"		# output the total profit for unique date
+	done
+	fi
+	TOTALPROFIT[0]=0				# set total profit to 0
+	for (( i=0; i<$DATECOUNT; i++ )); do		# add up profit from all unique dates
+		TOTALPROFIT[0]=$(( ${TOTALPROFIT[0]} + ${PRICECOUNT[i]} ))
+	done
+	echo "  Grand Total     \$${TOTALPROFIT[0]}"	# output total profit from all unique dates
+}
+
+# 6) Quit
+
+six(){
+	for (( i=0; i<$COUNT; i++ )); do
+		echo "${ITEM[i]}:${PRICE[i]}:${QUANTITY[i]}:${DATE[i]}" >> data.txt	# Output all current data to data.txt file
+	done
+}
+menu
+read CHOICE
+while [ $CHOICE -ne '6' ]	#Loop to determine function used
+do
+	if [ $CHOICE -eq '1' ]; then
+		one
+	elif [ $CHOICE -eq '2' ]; then
+		two
+	elif [ $CHOICE -eq '3' ]; then
+		three
+	elif [ $CHOICE -eq '4' ]; then
+		four
+	elif [ $CHOICE -eq '5' ]; then
+		five
+	else
+		echo "Invalid input"
+	fi
+	menu
+	read CHOICE
+	if [ $CHOICE -eq '6' ]; then	#At the end after read, otherwise option 6 function would never be activated
+		six
+	fi
+done
